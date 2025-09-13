@@ -1,0 +1,21 @@
+{
+    "name": "Golf Swing Tempo",
+    "short_name": "Golf Tempo",
+    "start_url": ".",
+    "display": "standalone",
+    "background_color": "#f0f8f0",
+    "theme_color": "#1e5e3f",
+    "orientation": "portrait",
+    "icons": [
+        {
+            "src": "icon-512.png",
+            "type": "image/png",
+            "sizes": "512x512"
+        },
+        {
+            "src": "icon-192.png",
+            "type": "image/png",
+            "sizes": "192x192"
+        }
+    ]
+}
