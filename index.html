@@ -64,12 +64,107 @@
                 font-size: 1.8rem;
             }
 
-            .instructions {
+            /* Accordion Styles */
+            .accordion {
+                max-width: 600px;
+                margin: 0 auto;
+                width: 100%;
+            }
+
+            .accordion-item {
+                background: white;
+                border-radius: 15px;
+                margin-bottom: 15px;
+                box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+                overflow: hidden;
+                animation: fadeIn 0.5s ease;
+            }
+
+            .accordion-header {
+                background: linear-gradient(135deg, #1e5e3f 0%, #2a7a5a 100%);
+                color: white;
+                padding: 20px;
+                cursor: pointer;
                 display: flex;
+                justify-content: space-between;
                 align-items: center;
-                justify-content: center;
-                gap: 12px;
-                margin: 20px auto;
+                transition: all 0.3s ease;
+                font-size: 1.2rem;
+                font-weight: 600;
+            }
+
+            .accordion-header:hover {
+                background: linear-gradient(135deg, #2a7a5a 0%, #359268 100%);
+            }
+
+            .accordion-header::after {
+                content: "▼";
+                transition: transform 0.3s ease;
+                font-size: 0.9rem;
+            }
+
+            .accordion-item.active .accordion-header::after {
+                transform: rotate(180deg);
+            }
+
+            .accordion-content {
+                max-height: 0;
+                overflow: hidden;
+                transition: max-height 0.3s ease;
+                background: white;
+            }
+
+            .accordion-item.active .accordion-content {
+                max-height: 2000px;
+            }
+
+            .accordion-body {
+                padding: 20px;
+            }
+
+            /* Help Content Styles */
+            .help-section {
+                color: #2c3e50;
+                line-height: 1.6;
+            }
+
+            .help-section h3 {
+                color: #1e5e3f;
+                margin: 20px 0 10px 0;
+                font-size: 1.1rem;
+            }
+
+            .help-section:first-child h3 {
+                margin-top: 0;
+            }
+
+            .help-section p {
+                margin: 8px 0;
+                padding-left: 20px;
+            }
+
+            .help-section hr {
+                border: none;
+                border-top: 2px solid #e0e0e0;
+                margin: 25px 0;
+            }
+
+            .help-section .final-note {
+                background: linear-gradient(135deg, #f0f8f0 0%, #e8f5e8 100%);
+                padding: 15px;
+                border-radius: 10px;
+                border-left: 4px solid #1e5e3f;
+                margin-top: 20px;
+            }
+
+            .help-section .final-note a {
+                color: #1e5e3f;
+                text-decoration: none;
+                font-weight: 500;
+            }
+
+            .help-section .final-note a:hover {
+                text-decoration: underline;
             }
 
             .status-indicator {
@@ -84,7 +179,6 @@
                 justify-content: center;
                 gap: 12px;
                 transition: all 0.3s ease;
-                animation: slideDown 0.5s ease;
             }
 
             .status-indicator.playing {
@@ -146,17 +240,6 @@
                 }
             }
 
-            @keyframes slideDown {
-                from {
-                    opacity: 0;
-                    transform: translateY(-10px);
-                }
-                to {
-                    opacity: 1;
-                    transform: translateY(0);
-                }
-            }
-
             .buttons-grid {
                 display: grid;
                 grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
@@ -164,7 +247,6 @@
                 max-width: 500px;
                 margin: 0 auto;
                 width: 100%;
-                animation: fadeIn 0.7s ease;
             }
 
             .audio-btn {
@@ -314,12 +396,21 @@
                     padding: 20px 15px;
                     min-height: 80px;
                 }
+
+                .accordion-header {
+                    font-size: 1.1rem;
+                    padding: 18px;
+                }
             }
 
             @media (min-width: 768px) {
                 .buttons-grid {
                     grid-template-columns: repeat(3, 1fr);
                     max-width: 600px;
+                }
+
+                .accordion {
+                    max-width: 700px;
                 }
             }
         </style>
@@ -332,90 +423,206 @@
             </h1>
         </div>
 
-        <div class="status-indicator" id="statusIndicator">
-            <span class="status-dot"></span>
-            <span id="statusText">Ready</span>
-        </div>
+        <div class="accordion">
+            <!-- Tempo Section -->
+            <div class="accordion-item active">
+                <div class="accordion-header" onclick="toggleAccordion(this)">
+                    <span>Tempo</span>
+                </div>
+                <div class="accordion-content">
+                    <div class="accordion-body">
+                        <div class="status-indicator" id="statusIndicator">
+                            <span class="status-dot"></span>
+                            <span id="statusText">Ready</span>
+                        </div>
 
-        <div class="buttons-grid">
-            <button class="audio-btn" data-sound="30_10.mp3">
-                <div class="btn-content">
-                    <span>30/10</span>
-                    <div class="visualizer">
-                        <div class="bar"></div>
-                        <div class="bar"></div>
-                        <div class="bar"></div>
-                        <div class="bar"></div>
+                        <div class="buttons-grid">
+                            <button class="audio-btn" data-sound="30_10.mp3">
+                                <div class="btn-content">
+                                    <span>30/10</span>
+                                    <div class="visualizer">
+                                        <div class="bar"></div>
+                                        <div class="bar"></div>
+                                        <div class="bar"></div>
+                                        <div class="bar"></div>
+                                    </div>
+                                </div>
+                            </button>
+                            <button class="audio-btn" data-sound="27_9.mp3">
+                                <div class="btn-content">
+                                    <span>27/9</span>
+                                    <div class="visualizer">
+                                        <div class="bar"></div>
+                                        <div class="bar"></div>
+                                        <div class="bar"></div>
+                                        <div class="bar"></div>
+                                    </div>
+                                </div>
+                            </button>
+                            <button class="audio-btn" data-sound="24_8.mp3">
+                                <div class="btn-content">
+                                    <span>24/8</span>
+                                    <div class="visualizer">
+                                        <div class="bar"></div>
+                                        <div class="bar"></div>
+                                        <div class="bar"></div>
+                                        <div class="bar"></div>
+                                    </div>
+                                </div>
+                            </button>
+                            <button class="audio-btn" data-sound="21_7.mp3">
+                                <div class="btn-content">
+                                    <span>21/7</span>
+                                    <div class="visualizer">
+                                        <div class="bar"></div>
+                                        <div class="bar"></div>
+                                        <div class="bar"></div>
+                                        <div class="bar"></div>
+                                    </div>
+                                </div>
+                            </button>
+                            <button class="audio-btn" data-sound="18_6.mp3">
+                                <div class="btn-content">
+                                    <span>18/6</span>
+                                    <div class="visualizer">
+                                        <div class="bar"></div>
+                                        <div class="bar"></div>
+                                        <div class="bar"></div>
+                                        <div class="bar"></div>
+                                    </div>
+                                </div>
+                            </button>
+                            <button class="audio-btn" data-sound="15_5.mp3">
+                                <div class="btn-content">
+                                    <span>15/5</span>
+                                    <div class="visualizer">
+                                        <div class="bar"></div>
+                                        <div class="bar"></div>
+                                        <div class="bar"></div>
+                                        <div class="bar"></div>
+                                    </div>
+                                </div>
+                            </button>
+                        </div>
                     </div>
                 </div>
-            </button>
-            <button class="audio-btn" data-sound="27_9.mp3">
-                <div class="btn-content">
-                    <span>27/9</span>
-                    <div class="visualizer">
-                        <div class="bar"></div>
-                        <div class="bar"></div>
-                        <div class="bar"></div>
-                        <div class="bar"></div>
-                    </div>
-                </div>
-            </button>
-            <button class="audio-btn" data-sound="24_8.mp3">
-                <div class="btn-content">
-                    <span>24/8</span>
-                    <div class="visualizer">
-                        <div class="bar"></div>
-                        <div class="bar"></div>
-                        <div class="bar"></div>
-                        <div class="bar"></div>
-                    </div>
-                </div>
-            </button>
-            <button class="audio-btn" data-sound="21_7.mp3">
-                <div class="btn-content">
-                    <span>21/7</span>
-                    <div class="visualizer">
-                        <div class="bar"></div>
-                        <div class="bar"></div>
-                        <div class="bar"></div>
-                        <div class="bar"></div>
-                    </div>
-                </div>
-            </button>
-            <button class="audio-btn" data-sound="18_6.mp3">
-                <div class="btn-content">
-                    <span>18/6</span>
-                    <div class="visualizer">
-                        <div class="bar"></div>
-                        <div class="bar"></div>
-                        <div class="bar"></div>
-                        <div class="bar"></div>
-                    </div>
-                </div>
-            </button>
-            <button class="audio-btn" data-sound="15_5.mp3">
-                <div class="btn-content">
-                    <span>15/5</span>
-                    <div class="visualizer">
-                        <div class="bar"></div>
-                        <div class="bar"></div>
-                        <div class="bar"></div>
-                        <div class="bar"></div>
-                    </div>
-                </div>
-            </button>
-        </div>
+            </div>
 
-        <div class="instructions">
-            <span
-                >Instructions similar to
-                <a href="https://youtu.be/Xey2o8BatoA" target="_blank"
-                    >Tour Tempo Golf Total Game</a
-                ></span
-            >
+            <!-- Help Section -->
+            <div class="accordion-item">
+                <div class="accordion-header" onclick="toggleAccordion(this)">
+                    <span>Help</span>
+                </div>
+                <div class="accordion-content">
+                    <div class="accordion-body">
+                        <div class="help-section">
+                            <h3>🎯 Step 1: Find Your Tempo</h3>
+                            <p>
+                                Begin with 30/10 and work through the options.
+                            </p>
+                            <p>
+                                Tap play, grab a club, and sync your swing to
+                                the notes:
+                            </p>
+                            <p>🎵 First note = takeaway</p>
+                            <p>🎵 Second note = top of backswing</p>
+                            <p>🎵 Third note = impact</p>
+                            <p>
+                                Test each tempo—some will feel off, others
+                                closer. Exploring them all helps you discover
+                                your best rhythm.
+                            </p>
+
+                            <hr />
+
+                            <h3>🏌️ Step 2: Train with It</h3>
+                            <p>Once you've chosen a tempo, stick with it.</p>
+                            <p>
+                                It may feel awkward at first, but that's part of
+                                the process—consistency is key.
+                            </p>
+                            <p>
+                                Missing the "impact" note is common. Often it's
+                                due to too much upper-body movement or holding
+                                lag too long. With steady practice, your timing
+                                will click into place.
+                            </p>
+
+                            <hr />
+
+                            <h3>📅 Step 3: Build a Routine</h3>
+                            <p>A good baseline: 5–10 minutes a day.</p>
+                            <p>
+                                Range routine: 3 swings without a ball → 1 swing
+                                with a ball.
+                            </p>
+                            <p>
+                                Switch clubs often to recreate on-course
+                                variety.
+                            </p>
+                            <p>
+                                Remember: tempo training is part of practice,
+                                not the whole session.
+                            </p>
+
+                            <hr />
+
+                            <h3>💡 Extra Tips</h3>
+                            <p>🎧 Use earbuds when possible.</p>
+                            <p>⛳ Warm up with the trainer before playing.</p>
+                            <p>
+                                🗣️ Repeat the notes in your head (or out loud)
+                                to keep rhythm on the course.
+                            </p>
+
+                            <hr />
+
+                            <h3>🌟 Final Note</h3>
+                                <p>
+                                    Golf is tough, but tempo training makes it
+                                    smoother. Stay patient, stay positive—your
+                                    swing will thank you.
+                                </p>
+ <hr />
+                            <div class="final-note">
+                                <p
+                                    >Video instructions: same as
+                                    <a
+                                        href="https://youtu.be/Xey2o8BatoA"
+                                        target="_blank"
+                                        >Tour Tempo Golf Total Game</a
+                                    >
+                            </p>
+                            </div>
+                           
+                        
+                                
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
         </div>
 
         <script>
+            // Accordion functionality
+            function toggleAccordion(header) {
+                const item = header.parentElement;
+                const wasActive = item.classList.contains("active");
+
+                // Close all accordion items
+                document
+                    .querySelectorAll(".accordion-item")
+                    .forEach((accItem) => {
+                        accItem.classList.remove("active");
+                    });
+
+                // Open clicked item if it wasn't active
+                if (!wasActive) {
+                    item.classList.add("active");
+                }
+            }
+
             // Audio player management
             let currentAudio = null;
             let currentButton = null;
