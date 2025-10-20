@@ -23,15 +23,17 @@ const urlsToCache = [
   './short_game/12-6-100bpm.mp3',
   './short_game/10-5-120bpm.mp3',
 ];
-
 // Install Service Worker and cache assets
 self.addEventListener('install', (event) => {
+  console.log('Service Worker installing...');
   event.waitUntil(
     caches.open(CACHE_NAME).then((cache) => {
       console.log('Caching app shell and audio files');
-      return cache.addAll(urlsToCache).catch((err) => {
+      return cache.addAll(urlsToCache).then(() => {
+        console.log('All files cached successfully');
+      }).catch((err) => {
         console.warn('Some files could not be cached:', err);
-        // Continue anyway - some files might not exist yet
+        // Continue anyway - files may not all exist yet
         return Promise.resolve();
       });
     })
@@ -41,6 +43,7 @@ self.addEventListener('install', (event) => {
 
 // Activate Service Worker and clean up old caches
 self.addEventListener('activate', (event) => {
+  console.log('Service Worker activating...');
   event.waitUntil(
     caches.keys().then((cacheNames) => {
       return Promise.all(
@@ -63,45 +66,87 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  event.respondWith(
-    caches.match(event.request).then((response) => {
-      // Return cached version if available
-      if (response) {
-        return response;
-      }
+  const { request } = event;
+  const url = new URL(request.url);
 
-      // Otherwise try to fetch from network
-      return fetch(event.request)
-        .then((response) => {
-          // Don't cache non-successful responses
-          if (!response || response.status !== 200 || response.type === 'error') {
-            return response;
-          }
-
-          // Clone the response
-          const responseToCache = response.clone();
-
-          // Cache successful responses for future offline use
-          caches.open(CACHE_NAME).then((cache) => {
-            cache.put(event.request, responseToCache);
-          });
-
-          return response;
-        })
-        .catch(() => {
-          // Network failed, serve from cache or offline page
-          return caches.match(event.request).then((cachedResponse) => {
-            if (cachedResponse) {
-              return cachedResponse;
+  // For audio files, use cache-first strategy with network fallback
+  if (request.url.includes('.mp3')) {
+    event.respondWith(
+      caches.match(request).then((cachedResponse) => {
+        if (cachedResponse) {
+          console.log('Serving from cache:', request.url);
+          return cachedResponse;
+        }
+        
+        // Try network if not in cache
+        return fetch(request, { credentials: 'omit' })
+          .then((response) => {
+            if (!response || response.status !== 200 || response.type === 'error') {
+              return response;
             }
-            // Optionally return a custom offline page here
-            return new Response('Offline - content not available', {
-              status: 503,
-              statusText: 'Service Unavailable',
-              headers: new Headers({ 'Content-Type': 'text/plain' }),
+
+            // Clone and cache successful responses
+            const responseToCache = response.clone();
+            caches.open(CACHE_NAME).then((cache) => {
+              cache.put(request, responseToCache);
+            });
+
+            return response;
+          })
+          .catch((err) => {
+            console.error('Failed to fetch audio:', request.url, err);
+            // Return the cached version if available, otherwise fail gracefully
+            return caches.match(request).then((cached) => {
+              if (cached) return cached;
+              // Return empty MP3 instead of error
+              return new Response(new ArrayBuffer(0), {
+                status: 200,
+                statusText: 'OK',
+                headers: new Headers({ 'Content-Type': 'audio/mpeg' })
+              });
             });
           });
+      })
+    );
+    return;
+  }
+
+  // For all other requests, use network-first strategy
+  event.respondWith(
+    fetch(request)
+      .then((response) => {
+        if (!response || response.status !== 200 || response.type === 'error') {
+          return response;
+        }
+
+        // Clone the response
+        const responseToCache = response.clone();
+
+        // Cache successful responses
+        caches.open(CACHE_NAME).then((cache) => {
+          cache.put(request, responseToCache);
         });
-    })
+
+        return response;
+      })
+      .catch(() => {
+        // Network failed, try cache
+        return caches.match(request).then((cachedResponse) => {
+          if (cachedResponse) {
+            return cachedResponse;
+          }
+          
+          // Return offline page or default response
+          if (request.destination === 'document') {
+            return caches.match('/index.html');
+          }
+          
+          return new Response('Offline - content not available', {
+            status: 503,
+            statusText: 'Service Unavailable',
+            headers: new Headers({ 'Content-Type': 'text/plain' })
+          });
+        });
+      })
   );
 });
