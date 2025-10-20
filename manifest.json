@@ -2,12 +2,12 @@
     "name": "Golf Swing Tempo",
     "short_name": "Golf Tempo",
     "description": "Golf swing tempo trainer with audio guides for long and short game",
-    "start_url": "/",
+    "start_url": "./",
     "display": "standalone",
     "background_color": "#ffffff",
     "theme_color": "#1e5e3f",
     "orientation": "portrait-primary",
-    "scope": "/",
+    "scope": "./",
     "icons": [
         {
             "src": "icon-192.png",
