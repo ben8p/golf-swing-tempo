@@ -2,26 +2,26 @@
 
 const CACHE_NAME = 'golf-tempo-v1';
 const urlsToCache = [
-  '/',
-  '/index.html',
-  '/manifest.json',
-  '/icon-192.png',
+  './',
+  './index.html',
+  './manifest.json',
+  './icon-192.png',
   
   // Long Game audio files
-  '/long_game/30-10-45bpm.mp3',
-  '/long_game/27-9-50bpm.mp3',
-  '/long_game/24-8-56bpm.mp3',
-  '/long_game/21-7-64bpm.mp3',
-  '/long_game/18-6-75bpm.mp3',
-  '/long_game/15-5-90bpm.mp3',
+  './long_game/30-10-45bpm.mp3',
+  './long_game/27-9-50bpm.mp3',
+  './long_game/24-8-56bpm.mp3',
+  './long_game/21-7-64bpm.mp3',
+  './long_game/18-6-75bpm.mp3',
+  './long_game/15-5-90bpm.mp3',
   
   // Short Game audio files
-  '/short_game/20-10-60bpm.mp3',
-  '/short_game/18-9-67bpm.mp3',
-  '/short_game/16-8-75bpm.mp3',
-  '/short_game/14-7-86bpm.mp3',
-  '/short_game/12-6-100bpm.mp3',
-  '/short_game/10-5-120bpm.mp3',
+  './short_game/20-10-60bpm.mp3',
+  './short_game/18-9-67bpm.mp3',
+  './short_game/16-8-75bpm.mp3',
+  './short_game/14-7-86bpm.mp3',
+  './short_game/12-6-100bpm.mp3',
+  './short_game/10-5-120bpm.mp3',
 ];
 
 // Install Service Worker and cache assets
