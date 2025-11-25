@@ -417,6 +417,54 @@
                     max-width: 700px;
                 }
             }
+
+            #bleStatus {
+                filter: drop-shadow(0 2px 8px rgba(0, 0, 0, 0.2));
+            }
+
+            #bleStatus:hover {
+                transform: scale(1.1);
+            }
+
+            .ble-badge {
+                position: absolute;
+                top: 3px;
+                right: 3px;
+                font-size: 1.2rem;
+                opacity: 0;
+                transform: scale(0);
+                transition: all 0.3s ease;
+            }
+
+            .audio-btn.ble-active .ble-badge {
+                opacity: 1;
+                transform: scale(1);
+            }
+
+            .ble-spinner {
+                position: absolute;
+                top: 3px;
+                right: 3px;
+                width: 23px;
+                height: 23px;
+                border-radius: 50%;
+                border: 3px solid rgba(30, 94, 63, 0.2);
+                border-top-color: #1e5e3f;
+                opacity: 0;
+                animation: none;
+                transition: all 0.3s ease;
+            }
+
+            .audio-btn.ble-loading .ble-spinner {
+                opacity: 1;
+                animation: spin 0.8s linear infinite;
+            }
+
+            @keyframes spin {
+                to {
+                    transform: rotate(360deg);
+                }
+            }
         </style>
     </head>
     <body>
@@ -453,6 +501,8 @@
                                         <div class="bar"></div>
                                         <div class="bar"></div>
                                     </div>
+                                    <div class="ble-spinner"></div>
+                                    <div class="ble-badge">✅</div>
                                 </div>
                             </button>
                             <button
@@ -467,6 +517,8 @@
                                         <div class="bar"></div>
                                         <div class="bar"></div>
                                     </div>
+                                    <div class="ble-spinner"></div>
+                                    <div class="ble-badge">✅</div>
                                 </div>
                             </button>
                             <button
@@ -481,6 +533,8 @@
                                         <div class="bar"></div>
                                         <div class="bar"></div>
                                     </div>
+                                    <div class="ble-spinner"></div>
+                                    <div class="ble-badge">✅</div>
                                 </div>
                             </button>
                             <button
@@ -495,6 +549,8 @@
                                         <div class="bar"></div>
                                         <div class="bar"></div>
                                     </div>
+                                    <div class="ble-spinner"></div>
+                                    <div class="ble-badge">✅</div>
                                 </div>
                             </button>
                             <button
@@ -509,6 +565,8 @@
                                         <div class="bar"></div>
                                         <div class="bar"></div>
                                     </div>
+                                    <div class="ble-spinner"></div>
+                                    <div class="ble-badge">✅</div>
                                 </div>
                             </button>
                             <button
@@ -523,6 +581,8 @@
                                         <div class="bar"></div>
                                         <div class="bar"></div>
                                     </div>
+                                    <div class="ble-spinner"></div>
+                                    <div class="ble-badge">✅</div>
                                 </div>
                             </button>
                         </div>
@@ -732,34 +792,215 @@
                     });
             }
 
-            // Accordion functionality
-            function toggleAccordion(header) {
-                const item = header.parentElement;
-                const wasActive = item.classList.contains("active");
+            // ============================================================================
+            // FEATURE FLAG: Bluetooth Support
+            // ============================================================================
+            const urlParams = new URLSearchParams(window.location.search);
+            const BLUETOOTH_ENABLED =
+                urlParams.has("ble") || urlParams.get("ble") === "true";
 
-                // Close all accordion items
-                document
-                    .querySelectorAll(".accordion-item")
-                    .forEach((accItem) => {
-                        accItem.classList.remove("active");
-                    });
+            // ============================================================================
+            // BLUETOOTH MANAGER
+            // ============================================================================
+            class BluetoothManager {
+                constructor() {
+                    this.device = null;
+                    this.server = null;
+                    this.service = null;
+                    this.rxCharacteristic = null;
+                    this.txCharacteristic = null;
+                    this.isConnected = false;
+                    this.buffer = "";
+                    this.callbacks = {
+                        onConnect: null,
+                        onDisconnect: null,
+                        onDataReceived: null,
+                    };
+                }
 
-                // Open clicked item if it wasn't active
-                if (!wasActive) {
-                    item.classList.add("active");
+                async connect() {
+                    try {
+                        this.device = await navigator.bluetooth.requestDevice({
+                            filters: [{ name: "GolfSwingTempo" }],
+                            optionalServices: [
+                                "6e400001-b5a3-f393-e0a9-e50e24dcca9e",
+                            ],
+                        });
+
+                        this.device.addEventListener(
+                            "gattserverdisconnected",
+                            () => this.handleDisconnect()
+                        );
+                        this.buffer = "";
+                        this.isConnected = true;
+
+                        this.server = await this.device.gatt.connect();
+                        this.service = await this.server.getPrimaryService(
+                            "6e400001-b5a3-f393-e0a9-e50e24dcca9e"
+                        );
+
+                        this.txCharacteristic =
+                            await this.service.getCharacteristic(
+                                "6e400002-b5a3-f393-e0a9-e50e24dcca9e"
+                            );
+                        this.rxCharacteristic =
+                            await this.service.getCharacteristic(
+                                "6e400003-b5a3-f393-e0a9-e50e24dcca9e"
+                            );
+
+                        await this.rxCharacteristic.startNotifications();
+                        this.rxCharacteristic.addEventListener(
+                            "characteristicvaluechanged",
+                            (e) => this.handleDataReceived(e)
+                        );
+
+                        this.callbacks.onConnect?.();
+                    } catch (error) {
+                        console.error("Bluetooth connection failed:", error);
+                        throw error;
+                    }
+                }
+
+                async disconnect() {
+                    if (this.device) {
+                        await this.device.gatt.disconnect();
+                    }
+                }
+
+                async sendBPM(bpm) {
+                    if (!this.isConnected || !this.txCharacteristic) {
+                        throw new Error("Not connected to device");
+                    }
+                    const message = `BPM:${bpm}\n`;
+                    const encoder = new TextEncoder();
+                    await this.txCharacteristic.writeValue(
+                        encoder.encode(message)
+                    );
+                }
+
+                handleDataReceived(event) {
+                    const decoder = new TextDecoder();
+                    const value = decoder.decode(event.target.value);
+
+                    this.buffer += value;
+
+                    // Process line by line
+                    let newlineIndex;
+                    // While there is a newline in the buffer
+                    while ((newlineIndex = this.buffer.indexOf("\n")) !== -1) {
+                        // Extract the full message (excluding the newline)
+                        const message = this.buffer
+                            .substring(0, newlineIndex)
+                            .trim();
+
+                        // Remove processed message from buffer
+                        this.buffer = this.buffer.substring(newlineIndex + 1);
+                        // Only trigger callback if message is not empty
+                        if (message && this.callbacks.onDataReceived) {
+                            this.callbacks.onDataReceived(message);
+                        }
+                    }
+                }
+
+                handleDisconnect() {
+                    this.isConnected = false;
+                    this.buffer = ""; // Clear buffer on disconnect
+                    this.callbacks.onDisconnect?.();
                 }
             }
 
-            // Audio player management
-            let currentAudio = null;
-            let currentButton = null;
-            let isPaused = false;
-
+            // ============================================================================
+            // INITIALIZATION
+            // ============================================================================
+            const btManager = BLUETOOTH_ENABLED ? new BluetoothManager() : null;
             const statusIndicator = document.getElementById("statusIndicator");
             const statusText = document.getElementById("statusText");
             const buttons = document.querySelectorAll(".audio-btn");
 
-            // Initialize Media Session API
+            let currentAudio = null;
+            let currentButton = null;
+            let isPaused = false;
+
+            // ============================================================================
+            // BLUETOOTH STATUS UI
+            // ============================================================================
+            function createBleStatus() {
+                if (!BLUETOOTH_ENABLED) return;
+
+                const statusDiv = document.createElement("div");
+                statusDiv.id = "bleStatus";
+                statusDiv.style.cssText = `
+                    position: fixed;
+                    top: 20px;
+                    right: 20px;
+                    z-index: 200;
+                    font-size: 2rem;
+                    cursor: pointer;
+                    transition: all 0.3s ease;
+                `;
+                statusDiv.innerHTML = "📱"; // Disconnected
+                statusDiv.addEventListener("click", handleBleStatusClick);
+                document.body.appendChild(statusDiv);
+
+                btManager.callbacks.onConnect = () => {
+                    statusDiv.innerHTML = "📱✅";
+                    clearBleFromBpmButton();
+                };
+
+                btManager.callbacks.onDisconnect = () => {
+                    statusDiv.innerHTML = "📱";
+                    clearBleFromBpmButton();
+                };
+
+                btManager.callbacks.onDataReceived = (data) => {
+                    if (data.startsWith("BPM:")) {
+                        const bpmStr = data.substring(4).trim();
+
+                        const bpm = parseInt(bpmStr, 10);
+                        if (!isNaN(bpm)) {
+                            updateActiveBpmButton(bpm);
+                        } else {
+                            // bpmStr === "STOP" || bpmStr === "ERROR"
+                            clearBleFromBpmButton();
+                        }
+                    }
+                };
+            }
+
+            async function handleBleStatusClick() {
+                if (btManager.isConnected) {
+                    await btManager.disconnect();
+                } else {
+                    try {
+                        await btManager.connect();
+                    } catch (error) {
+                        console.error("Connection failed:", error);
+                    }
+                }
+            }
+
+            function clearBleFromBpmButton() {
+                buttons.forEach((btn) => {
+                    btn.classList.remove("ble-active");
+                    btn.classList.remove("ble-loading");
+                });
+            }
+
+            function updateActiveBpmButton(bpm) {
+                clearBleFromBpmButton();
+                // Find button with matching BPM
+                buttons.forEach((btn) => {
+                    const soundFile = btn.getAttribute("data-sound");
+                    const bpmMatch = soundFile.match(/(\d+)bpm/);
+                    if (bpmMatch && parseInt(bpmMatch[1]) === bpm) {
+                        btn.classList.add("ble-active");
+                    }
+                });
+            }
+
+            // ============================================================================
+            // AUDIO PLAYER MANAGEMENT
+            // ============================================================================
             if ("mediaSession" in navigator) {
                 navigator.mediaSession.metadata = new MediaMetadata({
                     title: "Golf Swing Tempo",
@@ -896,13 +1137,56 @@
                 });
             }
 
-            // Add click handlers to all buttons (both long game and short game)
+            // ============================================================================
+            // ACCORDION & BUTTON HANDLERS
+            // ============================================================================
+            function toggleAccordion(header) {
+                const item = header.parentElement;
+                const wasActive = item.classList.contains("active");
+
+                document
+                    .querySelectorAll(".accordion-item")
+                    .forEach((accItem) => {
+                        accItem.classList.remove("active");
+                    });
+
+                if (!wasActive) {
+                    item.classList.add("active");
+                }
+            }
+
+            async function handleButtonClick(button) {
+                const soundFile = button.getAttribute("data-sound");
+
+                // Extract BPM from filename
+                const bpmMatch = soundFile.match(/(\d+)bpm/);
+                const bpm = bpmMatch ? parseInt(bpmMatch[1]) : null;
+
+                // Send to device if connected
+                if (BLUETOOTH_ENABLED && btManager.isConnected && bpm) {
+                    button.classList.add("ble-loading");
+                    try {
+                        await btManager.sendBPM(bpm);
+                    } catch (error) {
+                        console.error("Failed to send BPM:", error);
+                        button.classList.remove("ble-loading");
+                    }
+                }
+
+                // Play audio
+                playAudio(button, soundFile);
+            }
+
             buttons.forEach((button) => {
-                button.addEventListener("click", () => {
-                    const soundFile = button.getAttribute("data-sound");
-                    playAudio(button, soundFile);
-                });
+                button.addEventListener("click", () =>
+                    handleButtonClick(button)
+                );
             });
+
+            // Initialize Bluetooth UI
+            if (BLUETOOTH_ENABLED) {
+                createBleStatus();
+            }
         </script>
     </body>
 </html>
